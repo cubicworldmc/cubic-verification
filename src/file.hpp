@@ -6,12 +6,11 @@
 #include <string>
 #include <unordered_map>
 
-class Config {
+class File {
    public:
-    Config(const std::string& config_file) {
-        std::ifstream file(config_file);
-        if (!file.is_open())
-            throw std::runtime_error("failed to load config file");
+    File(const std::string& path) {
+        std::ifstream file(path);
+        if (!file.is_open()) throw std::runtime_error("failed to load file");
 
         std::string line = "";
         while (std::getline(file, line)) {
@@ -19,7 +18,7 @@ class Config {
 
             size_t pos = line.find("=");
             if (pos != std::string::npos) {
-                std::string key = line.substr(pos, 0);
+                std::string key = line.substr(0, pos);
                 std::string value = line.substr(pos + 1);
                 stash[key] = value;
             }
@@ -32,20 +31,24 @@ class Config {
 
         auto it = stash.find(key);
         if (it != stash.end()) {
-            std::string        value = it->second;
-            std::istringstream str(value);
+            std::string value = it->second;
+            if constexpr (std::is_same_v<T, std::string>)
+                return value;
+            else {
+                std::istringstream str(value);
 
-            T res{};
-            str >> res;
-            if (str.fail()) {
-                std::cout << "string stream failed: " << key << std::endl;
-                return T{};
+                T res{};
+                str >> res;
+                if (str.fail()) {
+                    std::cout << "strign stream failed: " << key << std::endl;
+                    return T{};
+                }
+
+                return res;
             }
-
-            return res;
         }
 
-        std::cout << "failed to get info from config: " << key << std::endl;
+        std::cout << "failed to get info from file: " << key << std::endl;
         return T{};
     }
 

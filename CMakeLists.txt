@@ -7,6 +7,8 @@ pkg_check_modules(DPP REQUIRED IMPORTED_TARGET dpp)
 
 add_executable(cubic-verification
     src/main.cpp
+    src/bot.cpp
+    src/command.cpp
 )
 
 target_link_libraries(cubic-verification PRIVATE PkgConfig::DPP)
