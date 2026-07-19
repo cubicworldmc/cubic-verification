@@ -2,12 +2,12 @@
 
 #include <dpp/dpp.h>
 
-#include "file.hpp"
+#include "localization.hpp"
 
 class WelcomeCommand {
    public:
     WelcomeCommand();
 
-    static void make(dpp::cluster& src, const std::unique_ptr<File>& local,
+    static void make(dpp::cluster& src, Localization& local,
                      const dpp::snowflake& guild_id);
 };

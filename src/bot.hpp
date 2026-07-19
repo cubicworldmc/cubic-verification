@@ -7,18 +7,21 @@
 
 #include "command.hpp"
 #include "file.hpp"
+#include "localization.hpp"
+#include "modal.hpp"
 
 class Bot {
    public:
     Bot(const std::string& token_file, const std::string& config_file,
-        const std::string& en_lang_file);
+        Localization& local);
 
     void register_commands();
+    void register_events();
     void run();
 
    private:
     dpp::cluster src;
 
+    Localization&         local;
     std::unique_ptr<File> config;
-    std::unique_ptr<File> en_lang;
 };

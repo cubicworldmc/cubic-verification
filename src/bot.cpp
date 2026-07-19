@@ -12,24 +12,33 @@ static std::string get_token(const std::string& path) {
 }
 
 Bot::Bot(const std::string& token_file, const std::string& config_file,
-         const std::string& en_lang_file)
+         Localization& local)
     : src(get_token(token_file)),
       config(std::make_unique<File>(config_file)),
-      en_lang(std::make_unique<File>(en_lang_file)) {
+      local(local) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {
         if (dpp::run_once<struct register_bot_commands>()) {
             register_commands();
+            register_events();
         }
     });
 }
 
 void Bot::register_commands() {
     std::cout << config->get<dpp::snowflake>("guild-id") << std::endl;
-    WelcomeCommand::make(src, en_lang, config->get<dpp::snowflake>("guild-id"));
+    WelcomeCommand::make(src, local, config->get<dpp::snowflake>("guild-id"));
     std::cout << "commands registred" << std::endl;
     std::cout << src.me.id << std::endl;
+}
+
+void Bot::register_events() {
+    src.on_button_click([this](const dpp::button_click_t& event) {
+        if (event.custom_id == "apply-button") {
+            event.dialog(Modal::trigger_client(src, local.get("en")));
+        }
+    });
 }
 
 void Bot::run() { src.start(dpp::st_wait); }

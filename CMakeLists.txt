@@ -9,6 +9,8 @@ add_executable(cubic-verification
     src/main.cpp
     src/bot.cpp
     src/command.cpp
+    src/localization.cpp
+    src/modal.cpp
 )
 
 target_link_libraries(cubic-verification PRIVATE PkgConfig::DPP)

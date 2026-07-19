@@ -1,3 +1,15 @@
 welcome-title=Welcome
 welcome-desc=Kids are doing fentanyl
 welcome-image=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6_wOEzZOWzf0YntmtXtFYZT_ZiEMazQwLVk-yJoX_fCP-JVxz6tv8myUR&s=10
+welcome-button=Apply
+
+form-client-title=Whitelist application
+form-client-q-size=3
+form-client-name=Your nickname
+form-client-name-ph=jeffrey131
+form-client-q2-name=How did you hear about our server?
+form-client-q2-ph=
+form-client-q3-name=Did you read the rules?
+form-client-q3-ph=
+form-client-q4-name=What are your plans here?
+form-client-q4-ph=
