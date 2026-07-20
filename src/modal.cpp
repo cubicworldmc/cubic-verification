@@ -27,3 +27,16 @@ dpp::interaction_modal_response Modal::trigger_client(const dpp::cluster& src,
 
     return res;
 }
+
+dpp::interaction_modal_response Modal::trigger_reject(
+    const dpp::cluster& src, const std::string user_id) {
+    dpp::interaction_modal_response res("modal-reject:" + user_id,
+                                        "Reject application");
+    res.add_component(dpp::component()
+                          .set_label("Reason")
+                          .set_id("reason")
+                          .set_type(dpp::cot_text)
+                          .set_text_style(dpp::text_paragraph));
+
+    return res;
+}

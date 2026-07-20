@@ -38,6 +38,23 @@ void Bot::register_events() {
         if (event.custom_id == "apply-button") {
             event.dialog(
                 Modal::trigger_client(src, local.find(event.command.member)));
+            return;
+        }
+
+        if (event.custom_id.rfind("application-accept:", 0) == 0) {
+            // goooood
+            src.message_delete(event.command.msg.id,
+                               event.command.msg.channel_id);
+            return;
+        }
+
+        if (event.custom_id.rfind("application-reject:", 0) == 0) {
+            std::string user_id =
+                event.custom_id.substr(strlen("application-reject:"));
+            event.dialog(Modal::trigger_reject(src, user_id));
+            src.message_delete(event.command.msg.id,
+                               event.command.msg.channel_id);
+            return;
         }
     });
 
@@ -81,8 +98,30 @@ void Bot::register_events() {
                                   .add_component(reject));
 
             src.message_create(msg);
-            event.reply(dpp::message("Your application has been sumbitted")
-                            .set_flags(dpp::m_ephemeral));
+            event.reply(
+                dpp::message(local.find(event.command.member)
+                                 .get<std::string>("application-sumbit"))
+                    .set_flags(dpp::m_ephemeral));
+            return;
+        }
+
+        if (event.custom_id.rfind("modal-reject:", 0) == 0) {
+            dpp::snowflake user_id(
+                event.custom_id.substr(strlen("modal-reject:")));
+            std::string reason =
+                std::get<std::string>(event.components[0].value);
+
+            dpp::embed embed;
+            embed.set_color(REG_CR2);
+            embed.set_title("Your application has been rejected");
+            embed.add_field("Reason", reason, false);
+
+            dpp::message msg;
+            msg.add_embed(embed);
+            src.direct_message_create(user_id, msg);
+            event.reply(
+                dpp::message("user notified").set_flags(dpp::m_ephemeral));
+            return;
         }
     });
 }

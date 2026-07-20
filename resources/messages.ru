@@ -15,3 +15,5 @@ form-client-q3-name=Прочитали ли вы правила?
 form-client-q3-ph=
 form-client-q4-name=Какие ваши планы на сервере?
 form-client-q4-ph=
+
+application-sumbit=Ваша заявка была отправлена
