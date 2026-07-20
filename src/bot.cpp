@@ -36,7 +36,53 @@ void Bot::register_commands() {
 void Bot::register_events() {
     src.on_button_click([this](const dpp::button_click_t& event) {
         if (event.custom_id == "apply-button") {
-            event.dialog(Modal::trigger_client(src, local.get("en")));
+            event.dialog(
+                Modal::trigger_client(src, local.find(event.command.member)));
+        }
+    });
+
+    src.on_form_submit([this](const dpp::form_submit_t& event) {
+        if (event.custom_id == "modal-client") {
+            const auto& components = event.components;
+
+            dpp::embed embed;
+            embed.set_title("New whitelist application");
+            embed.set_color(0x5865F2);
+            embed.add_field("Discord",
+                            event.command.usr.get_mention() + " (" +
+                                event.command.usr.username + ")",
+                            false);
+
+            for (const auto& c : components) {
+                embed.add_field(c.custom_id, std::get<std::string>(c.value),
+                                false);
+            }
+
+            dpp::component accept;
+            accept.set_type(dpp::cot_button)
+                .set_style(dpp::cos_success)
+                .set_label("Accept")
+                .set_id("application-accept:" +
+                        std::to_string(event.command.usr.id));
+
+            dpp::component reject;
+            reject.set_type(dpp::cot_button)
+                .set_style(dpp::cos_danger)
+                .set_label("Reject")
+                .set_id("application-reject:" +
+                        std::to_string(event.command.usr.id));
+
+            dpp::message msg;
+            msg.set_channel_id(config->get<dpp::snowflake>("staff-channel-id"));
+            msg.add_embed(embed);
+            msg.add_component(dpp::component()
+                                  .set_type(dpp::cot_action_row)
+                                  .add_component(accept)
+                                  .add_component(reject));
+
+            src.message_create(msg);
+            event.reply(dpp::message("Your application has been sumbitted")
+                            .set_flags(dpp::m_ephemeral));
         }
     });
 }

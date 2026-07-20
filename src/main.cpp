@@ -17,6 +17,7 @@ int main(void) {
 
     std::unique_ptr<Bot> bot =
         std::make_unique<Bot>(TOKEN_FILE, CONFIG_FILE, local);
+
     bot->run();
 
     return 0;
