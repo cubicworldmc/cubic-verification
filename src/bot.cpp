@@ -15,7 +15,9 @@ Bot::Bot(const std::string& token_file, const std::string& config_file,
          Localization& local)
     : src(get_token(token_file)),
       config(std::make_unique<File>(config_file)),
-      local(local) {
+      local(local),
+      api(config->get<std::string>("api-host"),
+          config->get<size_t>("api-port")) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {
@@ -42,15 +44,37 @@ void Bot::register_events() {
         }
 
         if (event.custom_id.rfind("application-accept:", 0) == 0) {
-            // goooood
+            std::string data =
+                event.custom_id.substr(strlen("application-accept:"));
+            size_t pos = data.find(':');
+
+            std::string user_id = data.substr(0, pos);
+            std::string code = data.substr(pos + 1);
+
+            api.accept("whitelist", code);
+
+            src.direct_message_create(
+                dpp::snowflake(user_id),
+                dpp::message("Your application has been accepted"));
+
             src.message_delete(event.command.msg.id,
                                event.command.msg.channel_id);
+
+            event.reply(dpp::message("Application accepted")
+                            .set_flags(dpp::m_ephemeral));
             return;
         }
 
         if (event.custom_id.rfind("application-reject:", 0) == 0) {
-            std::string user_id =
+            std::string data =
                 event.custom_id.substr(strlen("application-reject:"));
+            size_t pos = data.find(':');
+
+            std::string user_id = data.substr(0, pos);
+            std::string code = data.substr(pos + 1);
+
+            api.decline("whitelist", code);
+
             event.dialog(Modal::trigger_reject(src, user_id));
             src.message_delete(event.command.msg.id,
                                event.command.msg.channel_id);
@@ -70,7 +94,14 @@ void Bot::register_events() {
                                 event.command.usr.username + ")",
                             false);
 
+            std::string nickname;
+            std::string code;
             for (const auto& c : components) {
+                if (c.custom_id == "form-client-id1")
+                    nickname = std::get<std::string>(c.value);
+                if (c.custom_id == "form-client-code")
+                    code = std::get<std::string>(c.value);
+
                 embed.add_field(c.custom_id, std::get<std::string>(c.value),
                                 false);
             }
@@ -80,14 +111,14 @@ void Bot::register_events() {
                 .set_style(dpp::cos_success)
                 .set_label("Accept")
                 .set_id("application-accept:" +
-                        std::to_string(event.command.usr.id));
+                        std::to_string(event.command.usr.id) + ":" + code);
 
             dpp::component reject;
             reject.set_type(dpp::cot_button)
                 .set_style(dpp::cos_danger)
                 .set_label("Reject")
                 .set_id("application-reject:" +
-                        std::to_string(event.command.usr.id));
+                        std::to_string(event.command.usr.id) + ":" + code);
 
             dpp::message msg;
             msg.set_channel_id(config->get<dpp::snowflake>("staff-channel-id"));

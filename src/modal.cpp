@@ -13,6 +13,14 @@ dpp::interaction_modal_response Modal::trigger_client(const dpp::cluster& src,
             .set_placeholder(local.get<std::string>("form-client-name-ph"))
             .set_text_style(dpp::text_short));
 
+    res.add_component(
+        dpp::component()
+            .set_label(local.get<std::string>("form-client-code"))
+            .set_id("form-client-code")
+            .set_type(dpp::cot_text)
+            .set_placeholder(local.get<std::string>("form-client-code-ph"))
+            .set_text_style(dpp::text_short));
+
     size_t qsize = local.get<size_t>("form-client-q-size");
     for (size_t i = 0; i < qsize; i++) {
         std::string raw = "form-client-q" + std::to_string(i + 2);

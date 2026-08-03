@@ -5,6 +5,7 @@
 #include <fstream>
 #include <memory>
 
+#include "api.hpp"
 #include "command.hpp"
 #include "file.hpp"
 #include "localization.hpp"
@@ -24,4 +25,5 @@ class Bot {
 
     Localization&         local;
     std::unique_ptr<File> config;
+    API                   api;
 };
