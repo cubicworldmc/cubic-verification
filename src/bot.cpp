@@ -17,7 +17,9 @@ Bot::Bot(const std::string& token_file, const std::string& config_file,
       config(std::make_unique<File>(config_file)),
       local(local),
       api(config->get<std::string>("api-host"),
-          config->get<size_t>("api-port")) {
+          config->get<size_t>("api-port")),
+      crypto(config->get<std::string>("key-file"),
+             config->get<bool>("key-is-hex")) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {
@@ -106,6 +108,13 @@ void Bot::register_events() {
                                 false);
             }
 
+            std::string decrypted = to_lower(crypto.decrypt(code));
+            if (to_lower(nickname) != decrypted) {
+                event.reply(
+                    dpp::message("fart off").set_flags(dpp::m_ephemeral));
+                return;
+            }
+
             dpp::component accept;
             accept.set_type(dpp::cot_button)
                 .set_style(dpp::cos_success)
@@ -158,3 +167,10 @@ void Bot::register_events() {
 }
 
 void Bot::run() { src.start(dpp::st_wait); }
+
+std::string Bot::to_lower(std::string str) {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    return str;
+}

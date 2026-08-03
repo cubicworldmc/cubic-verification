@@ -7,6 +7,7 @@
 
 #include "api.hpp"
 #include "command.hpp"
+#include "crypto.hpp"
 #include "file.hpp"
 #include "localization.hpp"
 #include "modal.hpp"
@@ -26,4 +27,8 @@ class Bot {
     Localization&         local;
     std::unique_ptr<File> config;
     API                   api;
+    Crypto                crypto;
+
+   private:
+    std::string to_lower(std::string str);
 };

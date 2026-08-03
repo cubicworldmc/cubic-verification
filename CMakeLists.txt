@@ -14,6 +14,7 @@ add_executable(cubic-verification
     src/localization.cpp
     src/modal.cpp
     src/api.cpp
+    src/crypto.cpp
 )
 
 target_link_libraries(cubic-verification PRIVATE PkgConfig::DPP)
