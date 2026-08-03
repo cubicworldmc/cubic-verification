@@ -19,3 +19,8 @@ form-client-q4-name=What are your plans here?
 form-client-q4-ph=
 
 application-sumbit=Your application has been sumbitted
+
+code-invalid=Invalid code. You must connect to the server and copy the code before sumbitting application.
+
+form-reject-title=Your application has been rejected.
+form-reject-reason=Reason

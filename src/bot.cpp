@@ -111,7 +111,8 @@ void Bot::register_events() {
             std::string decrypted = to_lower(crypto.decrypt(code));
             if (to_lower(nickname) != decrypted) {
                 event.reply(
-                    dpp::message("fart off").set_flags(dpp::m_ephemeral));
+                    dpp::message(config->get<std::string>("code-invalid"))
+                        .set_flags(dpp::m_ephemeral));
                 return;
             }
 
@@ -153,8 +154,9 @@ void Bot::register_events() {
 
             dpp::embed embed;
             embed.set_color(REG_CR2);
-            embed.set_title("Your application has been rejected");
-            embed.add_field("Reason", reason, false);
+            embed.set_title(config->get<std::string>("form-reject-title"));
+            embed.add_field(config->get<std::string>("form-reject-reason"),
+                            reason, false);
 
             dpp::message msg;
             msg.add_embed(embed);
