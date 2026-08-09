@@ -3,7 +3,7 @@
 #include "bot.hpp"
 #include "localization.hpp"
 
-#define TOKEN_FILE "resources/token.env"
+#define TOKEN_FILE "secrets/token.env"
 #define CONFIG_FILE "resources/config.ini"
 #define EN_LOCALIZATION_FILE "resources/messages.en"
 #define RU_LOCALIZATION_FILE "resources/messages.ru"
