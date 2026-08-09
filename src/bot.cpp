@@ -16,12 +16,11 @@ Bot::Bot(const std::string& token_file, const std::string& config_file,
     : src(get_token(token_file)),
       config(std::make_unique<File>(config_file)),
       local(local),
-      api(config->get<std::string>("api-host"), config->get<size_t>("api-port"),
+      api(config->get<std::string>("api-file"),
           config->get<std::string>("ca-cert"),
           config->get<std::string>("client-cert"),
           config->get<std::string>("client-key")),
-      crypto(config->get<std::string>("key-file"),
-             config->get<bool>("key-is-hex")) {
+      crypto(config->get<std::string>("key-file")) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {

@@ -24,3 +24,7 @@ target_link_libraries(cubic-verification PRIVATE cpr::cpr)
 add_custom_command(TARGET cubic-verification POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:cubic-verification>/resources)
+
+add_custom_command(TARGET cubic-verification POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/secrets $<TARGET_FILE_DIR:cubic-verification>/secrets)

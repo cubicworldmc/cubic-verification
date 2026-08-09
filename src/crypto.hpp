@@ -4,14 +4,16 @@
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <fstream>
 #include <string>
 #include <vector>
 
 class Crypto {
    public:
-    Crypto(const std::string& key_file, bool is_hex);
+    Crypto(const std::string& key_file);
 
     std::string decrypt(const std::string& base64);
 

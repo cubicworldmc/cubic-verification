@@ -2,33 +2,35 @@
 
 #include <iostream>
 
-Crypto::Crypto(const std::string& key_file, bool is_hex) {
-    if (is_hex) {
-        std::ifstream file(key_file);
-        if (!file.is_open())
-            throw std::runtime_error("failed to open key file with hex");
-        std::string hex;
-        std::getline(file, hex);
+Crypto::Crypto(const std::string& key_file) {
+    std::ifstream file(key_file);
+    if (!file.is_open()) throw std::runtime_error("failed to open key file");
 
-        if (hex.size() != 64) throw std::runtime_error("key is not aes-256");
+    std::string encoded((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
 
-        for (size_t i = 0; i < 32; i++) {
-            key[i] = static_cast<unsigned char>(
-                std::stoi(hex.substr(i * 2, 2), nullptr, 16));
-        }
-    } else {
-        std::ifstream file(key_file, std::ios::binary);
-        if (!file.is_open())
-            throw std::runtime_error("failed to open key file binary");
-        file.read(reinterpret_cast<char*>(key.data()), key.size());
-        if (file.gcount() != 32)
-            throw std::runtime_error("key is fcking not aes-256");
+    while (!encoded.empty() &&
+           std::isspace(static_cast<unsigned char>(encoded.back()))) {
+        encoded.pop_back();
     }
+
+    size_t start = 0;
+    while (start < encoded.size() &&
+           std::isspace(static_cast<unsigned char>(encoded[start]))) {
+        ++start;
+    }
+
+    encoded = encoded.substr(start);
+
+    auto decoded = base64_decode(encoded);
+    if (decoded.size() != 32)
+        throw std::runtime_error("decoded key is not aes-256");
+
+    std::copy(decoded.begin(), decoded.end(), key.begin());
 }
 
 std::string Crypto::decrypt(const std::string& base64) {
     std::vector<unsigned char> encrypted = base64_decode(base64);
-    std::cout << encrypted.size() << std::endl;
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) throw std::runtime_error("failed to create cipther ctx");
@@ -43,7 +45,7 @@ std::string Crypto::decrypt(const std::string& base64) {
 
     int out_len1 = 0;
     if (EVP_DecryptUpdate(ctx, out.data(), &out_len1, encrypted.data(),
-                          encrypted.size()) != 1) {
+                          static_cast<int>(encrypted.size())) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         throw std::runtime_error("decrypt update failed");
     }
