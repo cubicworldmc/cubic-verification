@@ -14,9 +14,24 @@
 #define NONCE_LEN 12
 #define TAG_LEN 16
 
-class Crypto {
+namespace crypto {
+
+class AES {
    public:
-    Crypto(const std::string& key_file);
+    AES(const std::string& key_file);
+
+    std::string decrypt(const std::string& base64);
+
+   private:
+    std::array<unsigned char, 32> key;
+
+   private:
+    std::vector<unsigned char> base64_decode(const std::string& str);
+};
+
+class ChaCha20_Poly1305 {
+   public:
+    ChaCha20_Poly1305(const std::string& key_file);
 
     std::vector<unsigned char> encrypt(const std::string& plaintext);
     std::string decrypt(const std::vector<unsigned char>& message);
@@ -27,3 +42,5 @@ class Crypto {
    private:
     std::vector<unsigned char> generate_nonce();
 };
+
+}  // namespace crypto

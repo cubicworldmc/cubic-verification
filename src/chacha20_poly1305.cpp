@@ -1,8 +1,10 @@
-#include "crypto.hpp"
-
 #include <iostream>
 
-Crypto::Crypto(const std::string& key_file) {
+#include "crypto.hpp"
+
+using namespace crypto;
+
+ChaCha20_Poly1305::ChaCha20_Poly1305(const std::string& key_file) {
     std::ifstream file(key_file, std::ios::binary);
     if (!file.is_open()) throw std::runtime_error("failed to open key file");
 
@@ -12,7 +14,8 @@ Crypto::Crypto(const std::string& key_file) {
         throw std::runtime_error("key must be 32 bytes idiot");
 }
 
-std::vector<unsigned char> Crypto::encrypt(const std::string& plaintext) {
+std::vector<unsigned char> ChaCha20_Poly1305::encrypt(
+    const std::string& plaintext) {
     std::vector<unsigned char> nonce = generate_nonce();
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -79,7 +82,8 @@ std::vector<unsigned char> Crypto::encrypt(const std::string& plaintext) {
     return result;
 }
 
-std::string Crypto::decrypt(const std::vector<unsigned char>& message) {
+std::string ChaCha20_Poly1305::decrypt(
+    const std::vector<unsigned char>& message) {
     if (message.size() < NONCE_LEN + TAG_LEN)
         throw std::runtime_error("encrypted message is too smalll");
 
@@ -141,7 +145,7 @@ std::string Crypto::decrypt(const std::vector<unsigned char>& message) {
     return std::string(plaintext.begin(), plaintext.end());
 }
 
-std::vector<unsigned char> Crypto::generate_nonce() {
+std::vector<unsigned char> ChaCha20_Poly1305::generate_nonce() {
     std::vector<unsigned char> nonce(NONCE_LEN);
     if (!RAND_bytes(nonce.data(), NONCE_LEN))
         throw std::runtime_error("failed to generate nonce");

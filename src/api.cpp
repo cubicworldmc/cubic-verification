@@ -1,6 +1,6 @@
 #include "api.hpp"
 
-API::API(Crypto& crypto, const std::string& host_info_path)
+API::API(crypto::ChaCha20_Poly1305& crypto, const std::string& host_info_path)
     : crypto(crypto),
       hinfo(get_host_info(host_info_path)),
       m_socket(-1),

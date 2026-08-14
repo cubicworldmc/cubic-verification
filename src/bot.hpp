@@ -27,7 +27,9 @@ class Bot {
     Localization&         local;
     std::unique_ptr<File> config;
     API                   api;
-    Crypto                crypto;
+
+    crypto::ChaCha20_Poly1305 chacha20;
+    crypto::AES               aes;
 
    private:
     std::string to_lower(std::string str);

@@ -26,7 +26,7 @@ struct Response {
 
 class API {
    public:
-    API(Crypto& crypto, const std::string& host_info_path);
+    API(crypto::ChaCha20_Poly1305& crypto, const std::string& host_info_path);
     ~API();
 
     Response accept(const std::string& player, const std::string& list);
@@ -40,7 +40,7 @@ class API {
     };
 
    private:
-    Crypto& crypto;
+    crypto::ChaCha20_Poly1305& crypto;
 
     HostInfo    hinfo;
     int         m_socket;

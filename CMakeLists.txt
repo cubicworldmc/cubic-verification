@@ -5,8 +5,6 @@ project(cubic-verification VERSION 0.1.0 LANGUAGES C CXX)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DPP REQUIRED IMPORTED_TARGET dpp)
 
-find_package(cpr REQUIRED)
-
 add_executable(cubic-verification
     src/main.cpp
     src/bot.cpp

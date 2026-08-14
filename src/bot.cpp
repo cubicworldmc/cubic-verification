@@ -16,8 +16,9 @@ Bot::Bot(const std::string& token_file, const std::string& config_file,
     : src(get_token(token_file)),
       config(std::make_unique<File>(config_file)),
       local(local),
-      crypto(config->get<std::string>("key-file")),
-      api(crypto, config->get<std::string>("api-file")) {
+      chacha20(config->get<std::string>("key-chacha20-poly1305-file")),
+      aes(config->get<std::string>("key-aes-file")),
+      api(chacha20, config->get<std::string>("api-file")) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {
