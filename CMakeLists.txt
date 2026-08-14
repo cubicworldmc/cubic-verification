@@ -3,6 +3,7 @@ set(CMAKE_CXX_COMPILER g++)
 project(cubic-verification VERSION 0.1.0 LANGUAGES C CXX)
 
 find_package(PkgConfig REQUIRED)
+find_package(OpenSSL REQUIRED)
 pkg_check_modules(DPP REQUIRED IMPORTED_TARGET dpp)
 
 add_executable(cubic-verification
@@ -12,12 +13,14 @@ add_executable(cubic-verification
     src/localization.cpp
     src/modal.cpp
     src/api.cpp
-    src/crypto.cpp
+    src/aes.cpp
+    src/chacha20_poly1305.cpp
 )
 
-target_link_libraries(cubic-verification PRIVATE PkgConfig::DPP)
-
-target_link_libraries(cubic-verification PRIVATE cpr::cpr)
+target_link_libraries(cubic-verification PRIVATE 
+    PkgConfig::DPP
+    OpenSSL::Crypto
+)
 
 add_custom_command(TARGET cubic-verification POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

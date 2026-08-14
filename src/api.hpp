@@ -22,6 +22,7 @@ struct Response {
     std::string status;
     std::string player;
     std::string list;
+    std::string error;
     bool        success;
 };
 

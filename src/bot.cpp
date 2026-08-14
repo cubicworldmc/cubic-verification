@@ -55,7 +55,7 @@ void Bot::register_events() {
             Response response = api.accept(nickname, "whitelist");
             if (!response.success || response.status != "ACCEPTED") {
                 event.reply(dpp::message("failed to accept application: " +
-                                         response.status)
+                                         response.error)
                                 .set_flags(dpp::m_ephemeral));
                 return;
             }
@@ -83,7 +83,7 @@ void Bot::register_events() {
             Response response = api.decline(nickname, "whitelist");
             if (!response.success || response.status != "ACCEPTED") {
                 event.reply(dpp::message("failed to decline application: " +
-                                         response.status)
+                                         response.error)
                                 .set_flags(dpp::m_ephemeral));
                 return;
             }
