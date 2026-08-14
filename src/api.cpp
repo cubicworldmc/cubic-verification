@@ -17,15 +17,15 @@ API::~API() {
 }
 
 Response API::accept(const std::string& player, const std::string& list) {
-    return send_request("accept", player, list);
+    return send_request("ACCEPT", player, list);
 }
 
 Response API::decline(const std::string& player, const std::string& list) {
-    return send_request("decline", player, list);
+    return send_request("DECLINE", player, list);
 }
 
 Response API::query(const std::string& player, const std::string& list) {
-    return send_request("query", player, list);
+    return send_request("QUERY", player, list);
 }
 
 void API::conn_loop() {
@@ -65,8 +65,6 @@ bool API::conn_socket() {
 void API::disconnect() {
     std::lock_guard lock(socket_mutex);
 
-    if (!connected) return;
-
     connected = false;
     if (m_socket != -1) {
         shutdown(m_socket, SHUT_RDWR);
@@ -89,8 +87,8 @@ Response API::send_request(const std::string& kind, const std::string& player,
         crypto.encrypt(build_msg(timestamp, kind, player, list));
     if (enc.size() < NONCE_LEN + TAG_LEN) return {0, "", "", "", false};
 
-    const uint32_t cipher_size = enc.size() - NONCE_LEN - TAG_LEN;
-    const uint32_t net_size = htonl(cipher_size);
+    const uint32_t packet_size = static_cast<uint32_t>(enc.size());
+    const uint32_t net_size = htole32(packet_size);
 
     std::vector<unsigned char> packet;
     packet.insert(packet.end(), enc.begin(), enc.begin() + NONCE_LEN);
@@ -99,13 +97,15 @@ Response API::send_request(const std::string& kind, const std::string& player,
     packet.insert(packet.end(), size_ptr, size_ptr + sizeof(net_size));
     packet.insert(packet.end(), enc.begin() + NONCE_LEN, enc.end());
 
+    bool sent;
     {
         std::lock_guard lock(socket_mutex);
+        sent = send_all(packet);
+    }
 
-        if (!send_all(packet)) {
-            disconnect();
-            return {0, "", "", "", false};
-        }
+    if (!sent) {
+        disconnect();
+        return {0, "", "", "", false};
     }
 
     std::vector<unsigned char> nonce(NONCE_LEN);
@@ -115,19 +115,22 @@ Response API::send_request(const std::string& kind, const std::string& player,
         return {0, "", "", "", false};
     }
 
-    uint32_t net_response_size;
+    uint32_t net_response_size = 0;
     std::memcpy(&net_response_size, size_buf.data(), sizeof(net_response_size));
 
-    const uint32_t response_size = ntohl(net_response_size);
-    if (response_size > 64 * 1024) return {0, "", "", "", false};
+    const uint32_t response_size = le32toh(net_response_size);
+    if (response_size < NONCE_LEN + TAG_LEN || response_size > 64 * 1024)
+        return {0, "", "", "", false};
 
-    std::vector<unsigned char> cipher_and_tag(response_size + TAG_LEN);
+    uint32_t                   response_cipher_size = response_size - NONCE_LEN;
+    std::vector<unsigned char> cipher_and_tag(response_cipher_size);
     if (!recv_all(cipher_and_tag, cipher_and_tag.size())) {
         disconnect();
         return {0, "", "", "", false};
     }
 
     std::vector<unsigned char> encrypted;
+    encrypted.reserve(response_size);
     encrypted.insert(encrypted.end(), nonce.begin(), nonce.end());
     encrypted.insert(encrypted.end(), cipher_and_tag.begin(),
                      cipher_and_tag.end());

@@ -108,12 +108,27 @@ void Bot::register_events() {
                             false);
 
             std::string nickname;
-            for (const auto& c : components) {
-                if (c.custom_id == "form-client-id1")
-                    nickname = std::get<std::string>(c.value);
+            std::string code;
 
-                embed.add_field(c.custom_id, std::get<std::string>(c.value),
-                                false);
+            for (const auto& c : components) {
+                std::string value = std::get<std::string>(c.value);
+
+                if (c.custom_id == "form-client-id1") nickname = value;
+                if (c.custom_id == "form-client-code") code = value;
+
+                embed.add_field(c.custom_id, value, false);
+            }
+
+            if (nickname.empty() || code.empty())
+                event.reply(dpp::message("invalid application")
+                                .set_flags(dpp::m_ephemeral));
+
+            std::string decrypted = to_lower(aes.decrypt(code));
+            if (to_lower(nickname) != decrypted) {
+                event.reply(
+                    dpp::message(config->get<std::string>("code-invalid"))
+                        .set_flags(dpp::m_ephemeral));
+                return;
             }
 
             dpp::component accept;

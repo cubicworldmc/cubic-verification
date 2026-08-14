@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arpa/inet.h>
+#include <endian.h>
 #include <unistd.h>
 
 #include <atomic>
