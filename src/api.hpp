@@ -1,26 +1,37 @@
 #pragma once
 
-#include <cpr/cpr.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
-#include <cstdint>
+#include <atomic>
+#include <cstring>
+#include <fstream>
 #include <iostream>
+#include <mutex>
+#include <sstream>
 #include <string>
+#include <thread>
+
+#include "crypto.hpp"
+
+#define LOOP_DELAY_TIME 10
+
+struct Response {
+    uint64_t    timestamp;
+    std::string status;
+    std::string player;
+    std::string list;
+    bool        success;
+};
 
 class API {
    public:
-    API(const std::string& host_info_path, const std::string& ca_cert,
-        const std::string& client_cert, const std::string& client_key);
+    API(Crypto& crypto, const std::string& host_info_path);
+    ~API();
 
-    bool accept(const std::string& list, const std::string& code);
-    bool decline(const std::string& list, const std::string& code);
-
-   private:
-    std::string host;
-    size_t      port;
-
-    std::string ca_cert;
-    std::string client_cert;
-    std::string client_key;
+    Response accept(const std::string& player, const std::string& list);
+    Response decline(const std::string& player, const std::string& list);
+    Response query(const std::string& player, const std::string& list);
 
    private:
     struct HostInfo {
@@ -29,6 +40,33 @@ class API {
     };
 
    private:
-    bool     verify_code(cpr::Response& response);
-    HostInfo get_host_info(const std::string& path);
+    Crypto& crypto;
+
+    HostInfo    hinfo;
+    int         m_socket;
+    sockaddr_in s_addr;
+
+    std::atomic<bool> running;
+    std::atomic<bool> connected;
+    std::mutex        socket_mutex;
+    std::mutex        request_mutex;
+
+    std::thread connection_thread;
+
+   private:
+    void conn_loop();
+    bool conn_socket();
+    void disconnect();
+
+    Response send_request(const std::string& kind, const std::string& player,
+                          const std::string& list);
+
+    bool send_all(const std::vector<unsigned char>& data);
+    bool recv_all(std::vector<unsigned char>& buffer, size_t size);
+
+    HostInfo    get_host_info(const std::string& path);
+    std::string build_msg(uint64_t timestamp, const std::string& kind,
+                          const std::string& player, const std::string& list);
+    Response    parse_response(const std::string& plaintext);
+    uint64_t    get_time();
 };

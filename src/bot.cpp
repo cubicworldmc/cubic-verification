@@ -16,11 +16,8 @@ Bot::Bot(const std::string& token_file, const std::string& config_file,
     : src(get_token(token_file)),
       config(std::make_unique<File>(config_file)),
       local(local),
-      api(config->get<std::string>("api-file"),
-          config->get<std::string>("ca-cert"),
-          config->get<std::string>("client-cert"),
-          config->get<std::string>("client-key")),
-      crypto(config->get<std::string>("key-file")) {
+      crypto(config->get<std::string>("key-file")),
+      api(crypto, config->get<std::string>("api-file")) {
     src.on_log(dpp::utility::cout_logger());
 
     src.on_ready([this](const dpp::ready_t& event) {
@@ -52,9 +49,15 @@ void Bot::register_events() {
             size_t pos = data.find(':');
 
             std::string user_id = data.substr(0, pos);
-            std::string code = data.substr(pos + 1);
+            std::string nickname = data.substr(pos + 1);
 
-            api.accept("whitelist", code);
+            Response response = api.accept(nickname, "whitelist");
+            if (!response.success || response.status != "ACCEPTED") {
+                event.reply(dpp::message("failed to accept application: " +
+                                         response.status)
+                                .set_flags(dpp::m_ephemeral));
+                return;
+            }
 
             src.direct_message_create(
                 dpp::snowflake(user_id),
@@ -74,9 +77,15 @@ void Bot::register_events() {
             size_t pos = data.find(':');
 
             std::string user_id = data.substr(0, pos);
-            std::string code = data.substr(pos + 1);
+            std::string nickname = data.substr(pos + 1);
 
-            api.decline("whitelist", code);
+            Response response = api.decline(nickname, "whitelist");
+            if (!response.success || response.status != "ACCEPTED") {
+                event.reply(dpp::message("failed to decline application: " +
+                                         response.status)
+                                .set_flags(dpp::m_ephemeral));
+                return;
+            }
 
             event.dialog(Modal::trigger_reject(src, user_id));
             src.message_delete(event.command.msg.id,
@@ -98,23 +107,12 @@ void Bot::register_events() {
                             false);
 
             std::string nickname;
-            std::string code;
             for (const auto& c : components) {
                 if (c.custom_id == "form-client-id1")
                     nickname = std::get<std::string>(c.value);
-                if (c.custom_id == "form-client-code")
-                    code = std::get<std::string>(c.value);
 
                 embed.add_field(c.custom_id, std::get<std::string>(c.value),
                                 false);
-            }
-
-            std::string decrypted = to_lower(crypto.decrypt(code));
-            if (to_lower(nickname) != decrypted) {
-                event.reply(
-                    dpp::message(config->get<std::string>("code-invalid"))
-                        .set_flags(dpp::m_ephemeral));
-                return;
             }
 
             dpp::component accept;
@@ -122,14 +120,14 @@ void Bot::register_events() {
                 .set_style(dpp::cos_success)
                 .set_label("Accept")
                 .set_id("application-accept:" +
-                        std::to_string(event.command.usr.id) + ":" + code);
+                        std::to_string(event.command.usr.id) + ":" + nickname);
 
             dpp::component reject;
             reject.set_type(dpp::cot_button)
                 .set_style(dpp::cos_danger)
                 .set_label("Reject")
                 .set_id("application-reject:" +
-                        std::to_string(event.command.usr.id) + ":" + code);
+                        std::to_string(event.command.usr.id) + ":" + nickname);
 
             dpp::message msg;
             msg.set_channel_id(config->get<dpp::snowflake>("staff-channel-id"));

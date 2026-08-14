@@ -3,80 +3,148 @@
 #include <iostream>
 
 Crypto::Crypto(const std::string& key_file) {
-    std::ifstream file(key_file);
+    std::ifstream file(key_file, std::ios::binary);
     if (!file.is_open()) throw std::runtime_error("failed to open key file");
 
-    std::string encoded((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+    file.read(reinterpret_cast<char*>(key.data()), KEY_LEN);
 
-    while (!encoded.empty() &&
-           std::isspace(static_cast<unsigned char>(encoded.back()))) {
-        encoded.pop_back();
-    }
-
-    size_t start = 0;
-    while (start < encoded.size() &&
-           std::isspace(static_cast<unsigned char>(encoded[start]))) {
-        ++start;
-    }
-
-    encoded = encoded.substr(start);
-
-    auto decoded = base64_decode(encoded);
-    if (decoded.size() != 32)
-        throw std::runtime_error("decoded key is not aes-256");
-
-    std::copy(decoded.begin(), decoded.end(), key.begin());
+    if (file.gcount() != KEY_LEN)
+        throw std::runtime_error("key must be 32 bytes idiot");
 }
 
-std::string Crypto::decrypt(const std::string& base64) {
-    std::vector<unsigned char> encrypted = base64_decode(base64);
+std::vector<unsigned char> Crypto::encrypt(const std::string& plaintext) {
+    std::vector<unsigned char> nonce = generate_nonce();
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) throw std::runtime_error("failed to create cipther ctx");
+    if (!ctx) throw std::runtime_error("failed to create cipher ctx");
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_ecb(), nullptr, key.data(),
+    std::vector<unsigned char> ciphertext(plaintext.size());
+    std::vector<unsigned char> tag(TAG_LEN);
+
+    if (EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), nullptr, nullptr,
                            nullptr) != 1) {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error("decrypt init failed");
+        throw std::runtime_error("failed to init cipher");
     }
 
-    std::vector<unsigned char> out(encrypted.size() + 16);
-
-    int out_len1 = 0;
-    if (EVP_DecryptUpdate(ctx, out.data(), &out_len1, encrypted.data(),
-                          static_cast<int>(encrypted.size())) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, NONCE_LEN, nullptr) !=
+        1) {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error("decrypt update failed");
+        throw std::runtime_error("failed to set nonce (sex offender) length");
     }
 
-    int out_len2 = 0;
-    if (EVP_DecryptFinal_ex(ctx, out.data() + out_len1, &out_len2) != 1) {
+    if (EVP_EncryptInit_ex(ctx, nullptr, nullptr, key.data(), nonce.data()) !=
+        1) {
         EVP_CIPHER_CTX_free(ctx);
-        throw std::runtime_error("invalid key");
+        throw std::runtime_error("failed to init encrypt");
+    }
+
+    int len = 0;
+    int ciphertext_len = 0;
+
+    if (EVP_EncryptUpdate(
+            ctx, ciphertext.data(), &len,
+            reinterpret_cast<const unsigned char*>(plaintext.data()),
+            plaintext.size()) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("encryption failed");
+    }
+
+    ciphertext_len = len;
+
+    if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + ciphertext_len, &len) !=
+        1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("encryption final failed");
+    }
+
+    ciphertext_len += len;
+
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, TAG_LEN, tag.data()) !=
+        1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("failed to get auth tag");
     }
 
     EVP_CIPHER_CTX_free(ctx);
 
-    out.resize(out_len1 + out_len2);
+    ciphertext.resize(ciphertext_len);
 
-    return std::string(out.begin(), out.end());
+    std::vector<unsigned char> result;
+    result.reserve(NONCE_LEN + ciphertext.size() + TAG_LEN);
+    result.insert(result.end(), nonce.begin(), nonce.end());
+    result.insert(result.end(), ciphertext.begin(), ciphertext.end());
+    result.insert(result.end(), tag.begin(), tag.end());
+
+    return result;
 }
 
-std::vector<unsigned char> Crypto::base64_decode(const std::string& str) {
-    BIO* bio = BIO_new_mem_buf(str.data(), str.size());
-    BIO* b64 = BIO_new(BIO_f_base64());
+std::string Crypto::decrypt(const std::vector<unsigned char>& message) {
+    if (message.size() < NONCE_LEN + TAG_LEN)
+        throw std::runtime_error("encrypted message is too smalll");
 
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_push(b64, bio);
+    const unsigned char* nonce = message.data();
+    const unsigned char* tag = message.data() + message.size() - TAG_LEN;
+    const unsigned char* ciphertext = message.data() + NONCE_LEN;
+    size_t               ciphertext_len = message.size() - NONCE_LEN - TAG_LEN;
 
-    std::vector<unsigned char> output(str.size());
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) throw std::runtime_error("failed to create cipher ctx");
 
-    size_t len = BIO_read(bio, output.data(), output.size());
-    BIO_free_all(bio);
+    if (EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), nullptr, nullptr,
+                           nullptr) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("failed to init cipher");
+    }
 
-    if (len < 0) throw std::runtime_error("fcked to decode base64");
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, NONCE_LEN, nullptr) !=
+        1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("failed to set nonce length");
+    }
 
-    output.resize(len);
-    return output;
+    if (EVP_DecryptInit_ex(ctx, nullptr, nullptr, key.data(), nonce) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("failed to sey key and nonce");
+    }
+
+    std::vector<unsigned char> plaintext(ciphertext_len);
+
+    int len = 0;
+    int plaintext_len = 0;
+
+    if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext,
+                          ciphertext_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("decryption failed");
+    }
+
+    plaintext_len = len;
+
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, TAG_LEN,
+                            const_cast<unsigned char*>(tag)) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("failed to set auth tag");
+    }
+
+    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + plaintext_len, &len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("auth failed");
+    }
+
+    plaintext_len += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    plaintext.resize(plaintext_len);
+
+    return std::string(plaintext.begin(), plaintext.end());
+}
+
+std::vector<unsigned char> Crypto::generate_nonce() {
+    std::vector<unsigned char> nonce(NONCE_LEN);
+    if (!RAND_bytes(nonce.data(), NONCE_LEN))
+        throw std::runtime_error("failed to generate nonce");
+
+    return nonce;
 }
