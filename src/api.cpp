@@ -109,11 +109,9 @@ Response API::send_request(const std::string& kind, const std::string& player,
     const uint32_t net_size = htole32(packet_size);
 
     std::vector<unsigned char> packet;
-    packet.insert(packet.end(), enc.begin(), enc.begin() + NONCE_LEN);
-
     const auto* size_ptr = reinterpret_cast<const unsigned char*>(&net_size);
     packet.insert(packet.end(), size_ptr, size_ptr + sizeof(net_size));
-    packet.insert(packet.end(), enc.begin() + NONCE_LEN, enc.end());
+    packet.insert(packet.end(), enc.begin(), enc.end());
 
     bool sent;
     {
@@ -126,11 +124,10 @@ Response API::send_request(const std::string& kind, const std::string& player,
         return {0, "", "", "", "failed to send", false};
     }
 
-    std::vector<unsigned char> nonce(NONCE_LEN);
     std::vector<unsigned char> size_buf(sizeof(uint32_t));
-    if (!recv_all(nonce, NONCE_LEN) || !recv_all(size_buf, sizeof(uint32_t))) {
+    if (!recv_all(size_buf, size_buf.size())) {
         disconnect();
-        return {0, "", "", "", "failed to recv", false};
+        return {0, "", "", "", "failed to recv size", false};
     }
 
     uint32_t net_response_size = 0;
@@ -140,21 +137,13 @@ Response API::send_request(const std::string& kind, const std::string& player,
     if (response_size < NONCE_LEN + TAG_LEN || response_size > 64 * 1024)
         return {0, "", "", "", "response size is small", false};
 
-    uint32_t                   response_cipher_size = response_size - NONCE_LEN;
-    std::vector<unsigned char> cipher_and_tag(response_cipher_size);
-    if (!recv_all(cipher_and_tag, cipher_and_tag.size())) {
+    std::vector<unsigned char> encrypted(response_size);
+    if (!recv_all(encrypted, encrypted.size())) {
         disconnect();
-        return {0, "", "", "", "failed to recv all", false};
+        return {0, "", "", "", "failed to recv response", false};
     }
 
-    std::vector<unsigned char> encrypted;
-    encrypted.reserve(response_size);
-    encrypted.insert(encrypted.end(), nonce.begin(), nonce.end());
-    encrypted.insert(encrypted.end(), cipher_and_tag.begin(),
-                     cipher_and_tag.end());
-
     std::string response_text;
-
     try {
         response_text = crypto.decrypt(encrypted);
     } catch (const std::exception& e) {
