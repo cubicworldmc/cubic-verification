@@ -81,17 +81,17 @@ void Bot::register_events() {
             std::string user_id = data.substr(0, pos);
             std::string nickname = data.substr(pos + 1);
 
+            event.dialog(Modal::trigger_reject(src, user_id));
+            src.message_delete(event.command.msg.id,
+                               event.command.msg.channel_id);
+
             Response response = api.decline(nickname, CWCORE_LIST_NAME);
             if (!response.success || response.status != "OK_DECLINED") {
                 event.reply(dpp::message("failed to decline application: " +
                                          response.error)
                                 .set_flags(dpp::m_ephemeral));
-                return;
             }
 
-            event.dialog(Modal::trigger_reject(src, user_id));
-            src.message_delete(event.command.msg.id,
-                               event.command.msg.channel_id);
             return;
         }
     });
@@ -120,11 +120,13 @@ void Bot::register_events() {
                 embed.add_field(c.custom_id, value, false);
             }
 
-            if (nickname.empty() || code.empty())
+            if (nickname.empty() || code.empty()) {
                 event.reply(
                     dpp::message(local.find(event.command.member)
                                      .get<std::string>("invalid-application"))
                         .set_flags(dpp::m_ephemeral));
+                return;
+            }
 
             Response query = api.query(nickname, CWCORE_LIST_NAME);
             if (!query.success || query.status == "PENDING") {
