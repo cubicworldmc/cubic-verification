@@ -12,6 +12,8 @@
 #include "localization.hpp"
 #include "modal.hpp"
 
+#define CWCORE_LIST_NAME "vanilla"
+
 class Bot {
    public:
     Bot(const std::string& token_file, const std::string& config_file,

@@ -28,6 +28,10 @@ Response API::query(const std::string& player, const std::string& list) {
     return send_request("QUERY", player, list);
 }
 
+Response API::make_pending(const std::string& player, const std::string& list) {
+    return send_request("MAKE_PENDING", player, list);
+}
+
 void API::conn_loop() {
     std::cout << "conn loop" << std::endl;
     while (running) {

@@ -34,6 +34,7 @@ class API {
     Response accept(const std::string& player, const std::string& list);
     Response decline(const std::string& player, const std::string& list);
     Response query(const std::string& player, const std::string& list);
+    Response make_pending(const std::string& player, const std::string& list);
 
    private:
     struct HostInfo {

@@ -52,7 +52,7 @@ void Bot::register_events() {
             std::string user_id = data.substr(0, pos);
             std::string nickname = data.substr(pos + 1);
 
-            Response response = api.accept(nickname, "vanilla");
+            Response response = api.accept(nickname, CWCORE_LIST_NAME);
             if (!response.success || response.status != "OK_ACCEPTED") {
                 event.reply(dpp::message("failed to accept application: " +
                                          response.error)
@@ -62,7 +62,8 @@ void Bot::register_events() {
 
             src.direct_message_create(
                 dpp::snowflake(user_id),
-                dpp::message("Your application has been accepted"));
+                dpp::message(local.find(event.command.member)
+                                 .get<std::string>("direct-message-accepted")));
 
             src.message_delete(event.command.msg.id,
                                event.command.msg.channel_id);
@@ -80,7 +81,7 @@ void Bot::register_events() {
             std::string user_id = data.substr(0, pos);
             std::string nickname = data.substr(pos + 1);
 
-            Response response = api.decline(nickname, "vanilla");
+            Response response = api.decline(nickname, CWCORE_LIST_NAME);
             if (!response.success || response.status != "OK_DECLINED") {
                 event.reply(dpp::message("failed to decline application: " +
                                          response.error)
@@ -120,14 +121,25 @@ void Bot::register_events() {
             }
 
             if (nickname.empty() || code.empty())
-                event.reply(dpp::message("invalid application")
-                                .set_flags(dpp::m_ephemeral));
+                event.reply(
+                    dpp::message(local.find(event.command.member)
+                                     .get<std::string>("invalid-application"))
+                        .set_flags(dpp::m_ephemeral));
+
+            Response query = api.query(nickname, CWCORE_LIST_NAME);
+            if (!query.success || query.status == "PENDING") {
+                event.reply(
+                    dpp::message(local.find(event.command.member)
+                                     .get<std::string>("pending-application"))
+                        .set_flags(dpp::m_ephemeral));
+                return;
+            }
 
             std::string decrypted = to_lower(aes.decrypt(code));
             if (to_lower(nickname) != decrypted) {
-                event.reply(
-                    dpp::message(config->get<std::string>("code-invalid"))
-                        .set_flags(dpp::m_ephemeral));
+                event.reply(dpp::message(local.find(event.command.member)
+                                             .get<std::string>("code-invalid"))
+                                .set_flags(dpp::m_ephemeral));
                 return;
             }
 
@@ -152,6 +164,14 @@ void Bot::register_events() {
                                   .set_type(dpp::cot_action_row)
                                   .add_component(accept)
                                   .add_component(reject));
+
+            Response pending = api.make_pending(nickname, CWCORE_LIST_NAME);
+            if (!pending.success || pending.status != "OK_MAKE_PENDING") {
+                event.reply(dpp::message(
+                    local.find(event.command.member)
+                        .get<std::string>("application-failed-pending")));
+                return;
+            }
 
             src.message_create(msg);
             event.reply(
