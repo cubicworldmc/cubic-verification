@@ -5,13 +5,18 @@
 using namespace crypto;
 
 ChaCha20_Poly1305::ChaCha20_Poly1305(const std::string& key_file) {
-    std::ifstream file(key_file, std::ios::binary);
+    std::ifstream file(key_file);
     if (!file.is_open()) throw std::runtime_error("failed to open key file");
 
-    file.read(reinterpret_cast<char*>(key.data()), KEY_LEN);
+    std::string encoded;
+    std::getline(file, encoded);
 
-    if (file.gcount() != KEY_LEN)
-        throw std::runtime_error("key must be 32 bytes idiot");
+    std::vector<unsigned char> decoded = base64_decode(encoded);
+
+    if (decoded.size() != KEY_LEN)
+        throw std::runtime_error("key must be 32 bytesa");
+
+    std::copy(decoded.begin(), decoded.end(), key.begin());
 }
 
 std::vector<unsigned char> ChaCha20_Poly1305::encrypt(

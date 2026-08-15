@@ -65,21 +65,3 @@ std::string AES::decrypt(const std::string& base64) {
 
     return std::string(out.begin(), out.end());
 }
-
-std::vector<unsigned char> AES::base64_decode(const std::string& str) {
-    BIO* bio = BIO_new_mem_buf(str.data(), str.size());
-    BIO* b64 = BIO_new(BIO_f_base64());
-
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_push(b64, bio);
-
-    std::vector<unsigned char> output(str.size());
-
-    size_t len = BIO_read(bio, output.data(), output.size());
-    BIO_free_all(bio);
-
-    if (len < 0) throw std::runtime_error("fcked to decode base64");
-
-    output.resize(len);
-    return output;
-}

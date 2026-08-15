@@ -18,7 +18,28 @@
 
 namespace crypto {
 
-class AES {
+class CryptoBase {
+   public:
+    inline std::vector<unsigned char> base64_decode(const std::string& key) {
+        BIO* bio = BIO_new_mem_buf(key.data(), key.size());
+        BIO* b64 = BIO_new(BIO_f_base64());
+
+        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+        bio = BIO_push(b64, bio);
+
+        std::vector<unsigned char> output(key.size());
+
+        size_t len = BIO_read(bio, output.data(), output.size());
+        BIO_free_all(bio);
+
+        if (len < 0) throw std::runtime_error("fcked to decode base64");
+
+        output.resize(len);
+        return output;
+    }
+};
+
+class AES : public CryptoBase {
    public:
     AES(const std::string& key_file);
 
@@ -26,12 +47,9 @@ class AES {
 
    private:
     std::array<unsigned char, 32> key;
-
-   private:
-    std::vector<unsigned char> base64_decode(const std::string& str);
 };
 
-class ChaCha20_Poly1305 {
+class ChaCha20_Poly1305 : public CryptoBase {
    public:
     ChaCha20_Poly1305(const std::string& key_file);
 
