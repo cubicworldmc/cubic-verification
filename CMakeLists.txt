@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3.4)
+cmake_minimum_required(VERSION 4.3.0)
 set(CMAKE_CXX_COMPILER g++)
 project(cubic-verification VERSION 0.1.0 LANGUAGES C CXX)
 
@@ -24,8 +24,8 @@ target_link_libraries(cubic-verification PRIVATE
 
 add_custom_command(TARGET cubic-verification POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:cubic-verification>/resources)
+        ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:cubic-verification>/resources)
 
 add_custom_command(TARGET cubic-verification POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/secrets $<TARGET_FILE_DIR:cubic-verification>/secrets)
+        ${CMAKE_SOURCE_DIR}/secrets $<TARGET_FILE_DIR:cubic-verification>/secrets)
