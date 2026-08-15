@@ -52,8 +52,8 @@ void Bot::register_events() {
             std::string user_id = data.substr(0, pos);
             std::string nickname = data.substr(pos + 1);
 
-            Response response = api.accept(nickname, "whitelist");
-            if (!response.success || response.status != "ACCEPTED") {
+            Response response = api.accept(nickname, "vanilla");
+            if (!response.success || response.status != "OK_ACCEPTED") {
                 event.reply(dpp::message("failed to accept application: " +
                                          response.error)
                                 .set_flags(dpp::m_ephemeral));
@@ -80,8 +80,8 @@ void Bot::register_events() {
             std::string user_id = data.substr(0, pos);
             std::string nickname = data.substr(pos + 1);
 
-            Response response = api.decline(nickname, "whitelist");
-            if (!response.success || response.status != "ACCEPTED") {
+            Response response = api.decline(nickname, "vanilla");
+            if (!response.success || response.status != "OK_DECLINED") {
                 event.reply(dpp::message("failed to decline application: " +
                                          response.error)
                                 .set_flags(dpp::m_ephemeral));

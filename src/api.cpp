@@ -156,8 +156,7 @@ Response API::send_request(const std::string& kind, const std::string& player,
     Response response = parse_response(response_text);
     if (!response.success) return response;
 
-    if (response.timestamp != timestamp || response.player != player ||
-        response.list != list) {
+    if (response.player != player || response.list != list) {
         return {0, "", "", "", "response is not relative to ask", false};
     }
 
